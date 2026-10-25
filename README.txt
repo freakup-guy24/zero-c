@@ -40,11 +40,13 @@ needed. The update fixes GCC linking when the install path contains spaces.
 Your C source files are not included in the release package.
 
 PORTABLE VERSION
-Download ZERO-C-Portable-1.0.3.zip from the official GitHub Releases page
+Download ZERO-C-Portable-1.0.4.zip from the official GitHub Releases page
 and extract the entire archive to a writable folder or USB drive. Run
 ZERO-C.exe from the extracted folder. Keep all bundled folders and files
-together. Portable settings are stored in the local Settings folder. Place your
-own source files in C\TC or open them from elsewhere. The portable package
+together. Portable settings are stored in the local Settings folder. ZERO C creates
+Documents\ZERO C automatically as the default source workspace. New files and
+Open/Save dialogs start there; files opened elsewhere still save in their
+original locations. The portable package
 contains no personal practice programs. No installer or administrator access
 is needed.
 
