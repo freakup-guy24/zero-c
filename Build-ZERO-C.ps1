@@ -68,16 +68,16 @@ if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed with exit code $LASTEXITCODE."
 }
 
-$installer = Join-Path $dist "ZERO-C-Setup-1.0.3.exe"
+$installer = Join-Path $dist "ZERO-C-Setup-1.0.4.exe"
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
     throw "Installer output was not created: $installer"
 }
 $checksum = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.3.exe" -Encoding ASCII
+Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.4.exe" -Encoding ASCII
 Write-Output "Build complete: $installer"
 Write-Output "SHA-256: $checksum"
 
-$portableName = "ZERO-C-Portable-1.0.3"
+$portableName = "ZERO-C-Portable-1.0.4"
 $portableRoot = Join-Path $dist $portableName
 if (Test-Path -LiteralPath $portableRoot) {
     Remove-Item -LiteralPath $portableRoot -Recurse -Force
