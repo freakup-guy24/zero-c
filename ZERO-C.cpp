@@ -120,15 +120,15 @@ void OpenSpecificFile(const std::wstring& path);
 
 void InitializeWorkspace()
 {
-    const std::wstring portableMarker = appDirectory + L"\portable.mode";
+    const std::wstring portableMarker = appDirectory + L"\\portable.mode";
     if (GetFileAttributesW(portableMarker.c_str()) != INVALID_FILE_ATTRIBUTES) {
-        const std::wstring settingsDirectory = appDirectory + L"\Settings";
+        const std::wstring settingsDirectory = appDirectory + L"\\Settings";
         if (!CreateDirectoryW(settingsDirectory.c_str(), nullptr) &&
             GetLastError() != ERROR_ALREADY_EXISTS) {
             MessageBoxW(nullptr, L"Could not create the portable Settings folder. Extract ZERO C to a writable folder and try again.",
                          L"ZERO C", MB_OK | MB_ICONERROR);
         } else {
-            workspaceSettingsPath = settingsDirectory + L"\workspace.ini";
+            workspaceSettingsPath = settingsDirectory + L"\\workspace.ini";
         }
     } else {
         wchar_t appData[MAX_PATH]{};
@@ -137,13 +137,13 @@ void InitializeWorkspace()
             MessageBoxW(nullptr, L"Could not locate the Windows AppData folder for editor settings.",
                          L"ZERO C", MB_OK | MB_ICONERROR);
         } else {
-            const std::wstring settingsDirectory = std::wstring(appData) + L"\ZERO C";
+            const std::wstring settingsDirectory = std::wstring(appData) + L"\\ZERO C";
             if (!CreateDirectoryW(settingsDirectory.c_str(), nullptr) &&
                 GetLastError() != ERROR_ALREADY_EXISTS) {
                 MessageBoxW(nullptr, L"Could not create the ZERO C settings folder.",
                              L"ZERO C", MB_OK | MB_ICONERROR);
             } else {
-                workspaceSettingsPath = settingsDirectory + L"\workspace.ini";
+                workspaceSettingsPath = settingsDirectory + L"\\workspace.ini";
             }
         }
     }
@@ -158,11 +158,11 @@ void InitializeWorkspace()
         return;
     }
 
-    workspaceDirectory = std::wstring(documents) + L"\ZERO C";
+    workspaceDirectory = std::wstring(documents) + L"\\ZERO C";
     if (!CreateDirectoryW(workspaceDirectory.c_str(), nullptr)) {
         const DWORD createError = GetLastError();
         if (createError != ERROR_ALREADY_EXISTS) {
-            MessageBoxW(nullptr, L"Could not create Documents\ZERO C. Check that your Documents folder is writable.",
+            MessageBoxW(nullptr, L"Could not create Documents\\ZERO C. Check that your Documents folder is writable.",
                          L"ZERO C workspace unavailable", MB_OK | MB_ICONERROR);
             workspaceDirectory.clear();
             return;
@@ -172,7 +172,7 @@ void InitializeWorkspace()
     const DWORD attributes = GetFileAttributesW(workspaceDirectory.c_str());
     if (attributes == INVALID_FILE_ATTRIBUTES ||
         !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
-        MessageBoxW(nullptr, L"Documents\ZERO C exists but is not an accessible folder.",
+        MessageBoxW(nullptr, L"Documents\\ZERO C exists but is not an accessible folder.",
                      L"ZERO C workspace unavailable", MB_OK | MB_ICONERROR);
         workspaceDirectory.clear();
     }
@@ -537,7 +537,7 @@ bool SaveFile(bool saveAs)
         OPENFILENAMEW dialog{};
         dialog.lStructSize = sizeof(dialog);
         dialog.hwndOwner = mainWindow;
-    dialog.lpstrInitialDir = workspaceDirectory.empty() ? nullptr : workspaceDirectory.c_str();
+        dialog.lpstrInitialDir = workspaceDirectory.empty() ? nullptr : workspaceDirectory.c_str();
         dialog.lpstrFilter = L"C source files (*.c;*.h;*.cpp)\0*.c;*.h;*.cpp\0All files (*.*)\0*.*\0";
         dialog.lpstrFile = path;
         dialog.nMaxFile = MAX_PATH;
