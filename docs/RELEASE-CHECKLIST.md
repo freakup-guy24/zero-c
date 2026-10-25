@@ -8,6 +8,10 @@
       spaces; verify the bundled default manifest resolves.
 - [ ] Smoke-test setup, launch, opening/saving a disposable file, building,
       diagnostics, Run, shortcuts, and uninstall on a clean Windows account.
+- [ ] Extract the portable ZIP to a writable folder and USB drive; verify
+      launch, GCC build/run, settings persistence, and no external dependencies.
+- [ ] Verify portable `C\TC` includes only the compatibility header before
+      packaging; do not bundle any personal source programs.
 - [ ] Confirm the final installer contains no personal source files.
 - [ ] Confirm the repository's `C\TC` tree contains only `compat\conio.h`.
 - [ ] Record SHA-256 of the installer and toolchain release/version.
