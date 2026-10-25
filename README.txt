@@ -16,7 +16,7 @@ overwritten. Use New to start a file, then Save to select its name and folder.
 
 EDITOR FEATURES
 - One source file open at a time, with an Explorer list of C, header and C++
-  files in the application's C\TC folder.
+  files under Documents\ZERO C, which ZERO C creates automatically.
 - Dark-red theme, app logo, fixed-width editing, automatic
   indentation, bracket matching, and search/replace.
 - Numbered per-file bookmarks; the last file, cursor, and window size are
@@ -33,20 +33,18 @@ runtime are not included; compiler-specific code may need porting.
 Programs that need keyboard input should be run in the console opened by Run.
 
 INSTALL
-Run ZERO-C-Setup-1.0.3.exe. It installs for the current Windows user, creates
-a Start Menu shortcut, and optionally creates a desktop shortcut. If updating
-from v1.0.1, run the new installer over the existing copy; no uninstall is
-needed. The update fixes GCC linking when the install path contains spaces.
-Your C source files are not included in the release package.
+Run ZERO-C-Setup-1.0.4.exe for a per-user installation, or use the portable
+ZIP described below. ZERO C creates Documents\ZERO C as the default source
+workspace; new files and Open/Save dialogs start there. Existing files opened
+elsewhere still save to their original location. Your personal C files are not
+included in either download.
 
 PORTABLE VERSION
-Download ZERO-C-Portable-1.0.4.zip from the official GitHub Releases page
+Download ZERO-C-Portable-1.0.3.zip from the official GitHub Releases page
 and extract the entire archive to a writable folder or USB drive. Run
 ZERO-C.exe from the extracted folder. Keep all bundled folders and files
-together. Portable settings are stored in the local Settings folder. ZERO C creates
-Documents\ZERO C automatically as the default source workspace. New files and
-Open/Save dialogs start there; files opened elsewhere still save in their
-original locations. The portable package
+together. Portable settings are stored in the local Settings folder. Place your
+own source files in C\TC or open them from elsewhere. The portable package
 contains no personal practice programs. No installer or administrator access
 is needed.
 
