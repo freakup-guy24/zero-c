@@ -4,8 +4,8 @@
 IDI_ICON1 ICON "zero-c.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,0,1,0
- PRODUCTVERSION 1,0,1,0
+ FILEVERSION 1,0,2,0
+ PRODUCTVERSION 1,0,2,0
  FILEFLAGSMASK 0x3fL
  FILEFLAGS 0
  FILEOS 0x40004L
@@ -18,11 +18,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "ZERO C Project\0"
             VALUE "FileDescription", "ZERO C - C Programming Studio\0"
-            VALUE "FileVersion", "1.0.1\0"
+            VALUE "FileVersion", "1.0.2\0"
             VALUE "InternalName", "ZERO-C\0"
             VALUE "OriginalFilename", "ZERO-C.exe\0"
             VALUE "ProductName", "ZERO C\0"
-            VALUE "ProductVersion", "1.0.1\0"
+            VALUE "ProductVersion", "1.0.2\0"
         END
     END
     BLOCK "VarFileInfo"
