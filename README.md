@@ -20,13 +20,15 @@ not part of either package.
 
 ### Portable edition
 
-Download `ZERO-C-Portable-1.0.3.zip` from [Releases](../../releases/latest),
+Download `ZERO-C-Portable-1.0.4.zip` from [Releases](../../releases/latest),
 extract the whole archive to a writable folder (or USB drive), then run
 `ZERO-C.exe` inside the extracted folder. Keep the `GCC`, `C`, `portable.mode`,
 and `zero-c.spec` items together beside the app. No installation or admin
-access is required. Portable settings are saved in the local `Settings` folder;
-move or copy the entire extracted folder to carry them with the app. Put your
-own programs in `C\TC` within that folder, or open them from anywhere.
+access is required. Portable settings are saved in the local `Settings` folder; move or copy the
+whole extracted folder to carry them with the app. ZERO C creates
+`Documents\ZERO C` automatically as the default source workspace. New files
+and the Open/Save dialogs start there; existing files opened elsewhere can
+still be saved in their original locations.
 
 ## Quick start
 
@@ -38,7 +40,7 @@ own programs in `C\TC` within that folder, or open them from anywhere.
 
 Builds are saved next to the source with a `.GCC.exe` suffix, leaving existing
 `.EXE` files untouched. The Explorer lists `.c`, `.h`, and `.cpp` files under
-the installed `C\TC` folder. ZERO C edits one source file at a time.
+`Documents\ZERO C`, which ZERO C creates automatically. ZERO C edits one source file at a time.
 
 ## What's included
 
