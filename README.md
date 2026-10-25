@@ -6,12 +6,13 @@ diagnostics, and one-click build-and-run.
 
 ## Get ZERO C
 
-For Windows 10/11 x64, download and run the installer attached to the latest
-[ZERO C GitHub Release](../../releases/latest). The installer is
-per-user and does not need administrator privileges. It installs ZERO C and
-its GCC toolchain, creates a Start Menu shortcut, and optionally creates a
-desktop shortcut. The current release includes both a standard installer and a portable ZIP.
-The installer is per-user and does not need administrator privileges.
+For Windows 10/11 x64, choose the package that suits you from the latest
+[ZERO C GitHub Release](../../releases/latest): run the per-user installer, or
+extract the portable ZIP to a writable folder and launch `ZERO-C.exe`. Neither
+option needs administrator access. The portable edition keeps its settings in
+a `Settings` folder beside the app; keep the bundled `GCC`, `C`,
+`portable.mode`, and `zero-c.spec` items together. Your personal C files are
+not part of either package.
 
 > Release installers are not code-signed. Windows SmartScreen may show an
 > unknown-publisher prompt. Only run installers obtained from this
@@ -51,7 +52,7 @@ the installed `C\TC` folder. ZERO C edits one source file at a time.
 - Restores the last open file, caret location, and window size/position.
 - ZERO C app icon and custom in-app logo.
 - Reliable native control redraw in the dark theme.
-- Portable MinGW-w64 GCC in the installer; no system-wide PATH changes.
+- Portable MinGW-w64 GCC in both packages; no system-wide PATH changes.
 - Compatibility functions for common Turbo C `getch()` and `clrscr()` calls.
 
 ZERO C uses modern GCC; it is **not** Borland Turbo C. Turbo C graphics
@@ -64,9 +65,7 @@ The repository contains ZERO C's application source, compatibility header,
 build/installer configuration, and documentation. It does not contain the
 developer's personal C practice programs, prebuilt executables, or local
 compiler downloads. The installer and portable ZIP package the app, its single compatibility
-header, required documentation, and the separately licensed GCC toolchain. The
-portable edition stores ZERO C settings beside the app and is intended to run
-from any writable extracted folder.
+header, required documentation, and the separately licensed GCC toolchain.
 
 The source editor can be built with a compatible 64-bit MinGW-w64 GCC and
 Inno Setup 7. See [docs/USER-GUIDE.md](./docs/USER-GUIDE.md) for setup and
