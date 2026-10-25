@@ -68,7 +68,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed with exit code $LASTEXITCODE."
 }
 
-$installer = Join-Path $dist "ZERO-C-Setup-1.0.2.exe"
+$installer = Join-Path $dist "ZERO-C-Setup-1.0.3.exe"
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
     throw "Installer output was not created: $installer"
 }
@@ -76,3 +76,26 @@ $checksum = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowe
 Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.2.exe" -Encoding ASCII
 Write-Output "Build complete: $installer"
 Write-Output "SHA-256: $checksum"
+
+$portableName = "ZERO-C-Portable-1.0.3"
+$portableRoot = Join-Path $dist $portableName
+if (Test-Path -LiteralPath $portableRoot) {
+    Remove-Item -LiteralPath $portableRoot -Recurse -Force
+}
+New-Item -ItemType Directory -Path $portableRoot -Force | Out-Null
+Copy-Item -LiteralPath $appExecutable -Destination (Join-Path $portableRoot "ZERO-C.exe") -Force
+Copy-Item -LiteralPath (Join-Path $root "README.txt") -Destination (Join-Path $portableRoot "README.txt") -Force
+Copy-Item -LiteralPath (Join-Path $root "THIRD-PARTY-NOTICES.txt") -Destination (Join-Path $portableRoot "THIRD-PARTY-NOTICES.txt") -Force
+Copy-Item -LiteralPath (Join-Path $root "zero-c.spec") -Destination (Join-Path $portableRoot "zero-c.spec") -Force
+New-Item -ItemType Directory -Path (Join-Path $portableRoot "C\TC\compat") -Force | Out-Null
+Copy-Item -LiteralPath (Join-Path $root "C\TC\compat\conio.h") -Destination (Join-Path $portableRoot "C\TC\compat\conio.h") -Force
+New-Item -ItemType Directory -Path (Join-Path $portableRoot "GCC\mingw64") -Force | Out-Null
+Copy-Item -Path (Join-Path $CompilerDirectory "*") -Destination (Join-Path $portableRoot "GCC\mingw64") -Recurse -Force
+Set-Content -LiteralPath (Join-Path $portableRoot "portable.mode") -Value "ZERO C portable profile marker" -Encoding ASCII
+
+$portableArchive = Join-Path $dist "$portableName.zip"
+Compress-Archive -Path $portableRoot -DestinationPath $portableArchive -CompressionLevel Optimal -Force
+$portableChecksum = (Get-FileHash -LiteralPath $portableArchive -Algorithm SHA256).Hash.ToLowerInvariant()
+Set-Content -LiteralPath "$portableArchive.sha256" -Value "$portableChecksum  $portableName.zip" -Encoding ASCII
+Write-Output "Portable package complete: $portableArchive"
+Write-Output "Portable SHA-256: $portableChecksum"
