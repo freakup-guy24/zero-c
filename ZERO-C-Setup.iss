@@ -1,5 +1,5 @@
 #define ProductName "ZERO C"
-#define ProductVersion "1.0.2"
+#define ProductVersion "1.0.3"
 #define ProductPublisher "ZERO C Project"
 #define AppExe "ZERO-C.exe"
 #define StageDir "build"
@@ -30,7 +30,7 @@ WizardSizePercent=110
 CloseApplications=yes
 RestartApplications=no
 Uninstallable=yes
-VersionInfoVersion=1.0.2.0
+VersionInfoVersion=1.0.3.0
 VersionInfoCompany={#ProductPublisher}
 VersionInfoDescription=ZERO C Setup
 VersionInfoProductName={#ProductName}
