@@ -10,7 +10,9 @@ For Windows 10/11 x64, download and run the installer attached to the latest
 [ZERO C GitHub Release](../../releases/latest). The installer is
 per-user and does not need administrator privileges. It installs ZERO C and
 its GCC toolchain, creates a Start Menu shortcut, and optionally creates a
-desktop shortcut. Uninstall through **Settings → Apps → Installed apps**.
+desktop shortcut. The v1.0.2 release fixes GCC linking from the default install
+folder, which contains a space. Run its installer over v1.0.1; your source
+files are not part of the release package. Uninstall through **Settings → Apps → Installed apps**.
 
 > Release installers are not code-signed. Windows SmartScreen may show an
 > unknown-publisher prompt. Only run installers obtained from this
