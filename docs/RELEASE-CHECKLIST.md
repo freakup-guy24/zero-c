@@ -8,6 +8,10 @@
       spaces; verify the bundled default manifest resolves.
 - [ ] Smoke-test setup, launch, opening/saving a disposable file, building,
       diagnostics, Run, shortcuts, and uninstall on a clean Windows account.
+- [ ] Verify first launch creates `Documents\ZERO C` and that the Explorer
+      and New/Open/Save dialogs use it as the default workspace.
+- [ ] Verify files opened outside the workspace still save at their original
+      paths and that the app does not move or package personal source files.
 - [ ] Extract the portable ZIP to a writable folder and USB drive; verify
       launch, GCC build/run, settings persistence, and no external dependencies.
 - [ ] Verify portable `C\TC` includes only the compatibility header before
