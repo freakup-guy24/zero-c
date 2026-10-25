@@ -3,6 +3,7 @@
 #include <commctrl.h>
 #include <commdlg.h>
 #include <shellapi.h>
+#include <shlobj.h>
 #include <algorithm>
 #include <string>
 #include <thread>
@@ -58,6 +59,7 @@ HBRUSH sidebarBrush;
 HBRUSH accentBrush;
 std::wstring currentPath;
 std::wstring appDirectory;
+std::wstring workspaceDirectory;
 std::wstring lastExecutable;
 std::wstring workspaceSettingsPath;
 std::wstring bookmarksPath;
@@ -118,30 +120,62 @@ void OpenSpecificFile(const std::wstring& path);
 
 void InitializeWorkspace()
 {
-    const std::wstring portableMarker = appDirectory + L"\\portable.mode";
+    const std::wstring portableMarker = appDirectory + L"\portable.mode";
     if (GetFileAttributesW(portableMarker.c_str()) != INVALID_FILE_ATTRIBUTES) {
-        const std::wstring directory = appDirectory + L"\\Settings";
-        if (!CreateDirectoryW(directory.c_str(), nullptr) &&
+        const std::wstring settingsDirectory = appDirectory + L"\Settings";
+        if (!CreateDirectoryW(settingsDirectory.c_str(), nullptr) &&
             GetLastError() != ERROR_ALREADY_EXISTS) {
             MessageBoxW(nullptr, L"Could not create the portable Settings folder. Extract ZERO C to a writable folder and try again.",
                          L"ZERO C", MB_OK | MB_ICONERROR);
-            return;
+        } else {
+            workspaceSettingsPath = settingsDirectory + L"\workspace.ini";
         }
-        workspaceSettingsPath = directory + L"\\workspace.ini";
+    } else {
+        wchar_t appData[MAX_PATH]{};
+        const DWORD length = GetEnvironmentVariableW(L"APPDATA", appData, MAX_PATH);
+        if (length == 0 || length >= MAX_PATH) {
+            MessageBoxW(nullptr, L"Could not locate the Windows AppData folder for editor settings.",
+                         L"ZERO C", MB_OK | MB_ICONERROR);
+        } else {
+            const std::wstring settingsDirectory = std::wstring(appData) + L"\ZERO C";
+            if (!CreateDirectoryW(settingsDirectory.c_str(), nullptr) &&
+                GetLastError() != ERROR_ALREADY_EXISTS) {
+                MessageBoxW(nullptr, L"Could not create the ZERO C settings folder.",
+                             L"ZERO C", MB_OK | MB_ICONERROR);
+            } else {
+                workspaceSettingsPath = settingsDirectory + L"\workspace.ini";
+            }
+        }
+    }
+
+    wchar_t documents[MAX_PATH]{};
+    const HRESULT documentsResult = SHGetFolderPathW(
+        nullptr, CSIDL_PERSONAL | CSIDL_FLAG_CREATE, nullptr,
+        SHGFP_TYPE_CURRENT, documents);
+    if (FAILED(documentsResult)) {
+        MessageBoxW(nullptr, L"Could not locate your Documents folder. Check your Windows Documents folder settings and restart ZERO C.",
+                     L"ZERO C workspace unavailable", MB_OK | MB_ICONERROR);
         return;
     }
 
-    wchar_t appData[MAX_PATH]{};
-    const DWORD length = GetEnvironmentVariableW(L"APPDATA", appData, MAX_PATH);
-    if (length == 0 || length >= MAX_PATH) {
-        return;
+    workspaceDirectory = std::wstring(documents) + L"\ZERO C";
+    if (!CreateDirectoryW(workspaceDirectory.c_str(), nullptr)) {
+        const DWORD createError = GetLastError();
+        if (createError != ERROR_ALREADY_EXISTS) {
+            MessageBoxW(nullptr, L"Could not create Documents\ZERO C. Check that your Documents folder is writable.",
+                         L"ZERO C workspace unavailable", MB_OK | MB_ICONERROR);
+            workspaceDirectory.clear();
+            return;
+        }
     }
-    const std::wstring directory = std::wstring(appData) + L"\\ZERO C";
-    if (!CreateDirectoryW(directory.c_str(), nullptr) &&
-        GetLastError() != ERROR_ALREADY_EXISTS) {
-        return;
+
+    const DWORD attributes = GetFileAttributesW(workspaceDirectory.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES ||
+        !(attributes & FILE_ATTRIBUTE_DIRECTORY)) {
+        MessageBoxW(nullptr, L"Documents\ZERO C exists but is not an accessible folder.",
+                     L"ZERO C workspace unavailable", MB_OK | MB_ICONERROR);
+        workspaceDirectory.clear();
     }
-    workspaceSettingsPath = directory + L"\\workspace.ini";
 }
 
 void LoadBookmarks()
@@ -454,7 +488,9 @@ void RefreshSourceFiles()
 {
     if (!fileListWindow) return;
     sourceFiles.clear();
-    EnumerateSourceFiles(appDirectory + L"\\C\\TC", 0);
+    if (!workspaceDirectory.empty()) {
+        EnumerateSourceFiles(workspaceDirectory, 0);
+    }
     std::sort(sourceFiles.begin(), sourceFiles.end(),
               [](const std::wstring& left, const std::wstring& right) {
                   return _wcsicmp(LeafName(left).c_str(), LeafName(right).c_str()) < 0;
@@ -501,6 +537,7 @@ bool SaveFile(bool saveAs)
         OPENFILENAMEW dialog{};
         dialog.lStructSize = sizeof(dialog);
         dialog.hwndOwner = mainWindow;
+    dialog.lpstrInitialDir = workspaceDirectory.empty() ? nullptr : workspaceDirectory.c_str();
         dialog.lpstrFilter = L"C source files (*.c;*.h;*.cpp)\0*.c;*.h;*.cpp\0All files (*.*)\0*.*\0";
         dialog.lpstrFile = path;
         dialog.nMaxFile = MAX_PATH;
@@ -563,6 +600,7 @@ void OpenFile()
     OPENFILENAMEW dialog{};
     dialog.lStructSize = sizeof(dialog);
     dialog.hwndOwner = mainWindow;
+    dialog.lpstrInitialDir = workspaceDirectory.empty() ? nullptr : workspaceDirectory.c_str();
     dialog.lpstrFilter = L"C source files (*.c;*.h;*.cpp)\0*.c;*.h;*.cpp\0All files (*.*)\0*.*\0";
     dialog.lpstrFile = path;
     dialog.nMaxFile = MAX_PATH;
