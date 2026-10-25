@@ -2,15 +2,14 @@
 
 ## Install
 
-Run `ZERO-C-Setup-1.0.3.exe` for a per-user installation, or download
-`ZERO-C-Portable-1.0.3.zip` from the official release. For the portable
+Run `ZERO-C-Setup-1.0.4.exe` for a per-user installation, or download
+`ZERO-C-Portable-1.0.4.zip` from the official release. For the portable
 version, extract the complete ZIP to a writable folder or USB drive and launch
 `ZERO-C.exe` inside it. Keep the GCC and C folders, `portable.mode`, and
 `zero-c.spec` beside the application. No installation or admin access is
 needed. Portable settings are saved in the local `Settings` folder, so move the
 whole extracted folder to carry settings. Your personal C files are not part of
-the download; put your programs in `C\TC` inside the portable folder or open
-them from elsewhere.
+the download.
 
 For a standard installation, administrator access is not required and you may
 select the optional desktop shortcut during setup.
@@ -29,9 +28,11 @@ select the optional desktop shortcut during setup.
 - Press **Ctrl+K**, then a digit `0`-`9` to set a bookmark. Press **Ctrl+Q**,
   then the same digit to return to it.
 
-The Explorer lists source files under the installed `C\TC` folder. Files in
-other folders remain accessible using **Open**. ZERO C does not copy or
-relocate your source files automatically. ZERO C remembers the last open file,
+ZERO C automatically creates `Documents\ZERO C` as its default source folder
+on first launch. The Explorer lists source files there, and New/Save/Open
+dialogs start there. Files opened from other locations remain supported and
+Ctrl+S saves them back to their existing path; use **Save As** to place a copy
+in the Documents workspace. ZERO C does not move your existing source files. ZERO C remembers the last open file,
 caret location, and window size/position between launches. Bookmarks are saved
 per source file.
 
@@ -81,7 +82,8 @@ models, DOS interrupts, or BGI graphics runtime.
 
 Version 1.0.1 fixed dark-theme repaint issues in the editor and Build Output.
 Version 1.0.2 fixed GCC linker failures when the install path contains spaces.
-Version 1.0.3 adds a portable ZIP edition with settings stored beside the app.
+Version 1.0.3 added a portable ZIP edition with settings stored beside the app.
+Version 1.0.4 creates a default `Documents\ZERO C` workspace for source files.
 The launcher passes the bundled manifest object by library name, avoiding a
 space-sensitive absolute object path.
 
