@@ -66,11 +66,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed with exit code $LASTEXITCODE."
 }
 
-$installer = Join-Path $dist "ZERO-C-Setup-1.0.0.exe"
+$installer = Join-Path $dist "ZERO-C-Setup-1.0.1.exe"
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
     throw "Installer output was not created: $installer"
 }
 $checksum = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.0.exe" -Encoding ASCII
+Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.1.exe" -Encoding ASCII
 Write-Output "Build complete: $installer"
 Write-Output "SHA-256: $checksum"

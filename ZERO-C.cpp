@@ -21,9 +21,11 @@ constexpr int ID_FILES = 109;
 constexpr int ID_EXPLORER_TITLE = 110;
 constexpr int ID_TAB_TITLE = 111;
 constexpr int ID_OUTPUT_TITLE = 112;
+constexpr int IDI_ZERO_C = 101;
 constexpr UINT WM_BUILD_OUTPUT = WM_APP + 1;
 constexpr UINT WM_BUILD_DONE = WM_APP + 2;
 
+UINT findReplaceMessage;
 const COLORREF backgroundColor = RGB(24, 22, 23);
 const COLORREF panelColor = RGB(32, 29, 30);
 const COLORREF sidebarColor = RGB(28, 26, 27);
@@ -57,6 +59,16 @@ HBRUSH accentBrush;
 std::wstring currentPath;
 std::wstring appDirectory;
 std::wstring lastExecutable;
+std::wstring workspaceSettingsPath;
+std::wstring bookmarksPath;
+std::wstring findText;
+std::wstring replaceText;
+WCHAR findTextBuffer[256]{};
+WCHAR replaceTextBuffer[256]{};
+FINDREPLACEW findReplace{};
+HWND findDialog;
+int bookmarks[10] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+int bookmarkPrefixPending;
 bool dirty;
 bool loadingFile;
 bool building;
@@ -101,6 +113,214 @@ std::wstring ExecutablePath(const std::wstring& source)
     return source.substr(0, stemEnd) + L".GCC.exe";
 }
 
+void SetStatus(const std::wstring& message);
+void OpenSpecificFile(const std::wstring& path);
+
+void InitializeWorkspace()
+{
+    wchar_t appData[MAX_PATH]{};
+    const DWORD length = GetEnvironmentVariableW(L"APPDATA", appData, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH) {
+        return;
+    }
+    const std::wstring directory = std::wstring(appData) + L"\\ZERO C";
+    if (!CreateDirectoryW(directory.c_str(), nullptr) &&
+        GetLastError() != ERROR_ALREADY_EXISTS) {
+        return;
+    }
+    workspaceSettingsPath = directory + L"\\workspace.ini";
+}
+
+void LoadBookmarks()
+{
+    bookmarksPath = currentPath;
+    for (int index = 0; index < 10; ++index) {
+        wchar_t key[16]{};
+        wchar_t value[32]{};
+        swprintf_s(key, L"Bookmark%d", index);
+        GetPrivateProfileStringW(currentPath.c_str(), key, L"-1", value,
+                                 static_cast<DWORD>(std::size(value)),
+                                 workspaceSettingsPath.c_str());
+        bookmarks[index] = _wtoi(value);
+    }
+}
+
+void SaveBookmarks()
+{
+    if (workspaceSettingsPath.empty() || bookmarksPath.empty()) {
+        return;
+    }
+    for (int index = 0; index < 10; ++index) {
+        wchar_t key[16]{};
+        wchar_t value[32]{};
+        swprintf_s(key, L"Bookmark%d", index);
+        swprintf_s(value, L"%d", bookmarks[index]);
+        WritePrivateProfileStringW(bookmarksPath.c_str(), key, value,
+                                   workspaceSettingsPath.c_str());
+    }
+}
+
+void SaveWorkspace()
+{
+    if (workspaceSettingsPath.empty()) {
+        return;
+    }
+    if (!currentPath.empty() && editorWindow) {
+        DWORD start = 0;
+        DWORD end = 0;
+        SendMessageW(editorWindow, EM_GETSEL, reinterpret_cast<WPARAM>(&start),
+                     reinterpret_cast<LPARAM>(&end));
+        wchar_t cursor[32]{};
+        swprintf_s(cursor, L"%u", start);
+        WritePrivateProfileStringW(L"Workspace", L"File", currentPath.c_str(),
+                                   workspaceSettingsPath.c_str());
+        WritePrivateProfileStringW(L"Workspace", L"Cursor", cursor,
+                                   workspaceSettingsPath.c_str());
+    } else {
+        WritePrivateProfileStringW(L"Workspace", L"File", L"",
+                                   workspaceSettingsPath.c_str());
+        WritePrivateProfileStringW(L"Workspace", L"Cursor", L"0",
+                                   workspaceSettingsPath.c_str());
+    }
+    SaveBookmarks();
+
+    if (mainWindow) {
+        RECT bounds{};
+        if (GetWindowRect(mainWindow, &bounds)) {
+            const int values[] = {bounds.left, bounds.top,
+                                  bounds.right - bounds.left,
+                                  bounds.bottom - bounds.top};
+            const wchar_t* keys[] = {L"X", L"Y", L"Width", L"Height"};
+            for (size_t index = 0; index < std::size(values); ++index) {
+                wchar_t value[32]{};
+                swprintf_s(value, L"%d", values[index]);
+                WritePrivateProfileStringW(L"Window", keys[index], value,
+                                           workspaceSettingsPath.c_str());
+            }
+        }
+    }
+}
+
+void RestoreCursorPosition()
+{
+    if (workspaceSettingsPath.empty()) {
+        return;
+    }
+    const DWORD position = GetPrivateProfileIntW(L"Workspace", L"Cursor", 0,
+                                                  workspaceSettingsPath.c_str());
+    const LRESULT length = GetWindowTextLengthW(editorWindow);
+    const DWORD boundedPosition = static_cast<DWORD>(
+        std::min<LRESULT>(position, std::max<LRESULT>(0, length)));
+    SendMessageW(editorWindow, EM_SETSEL, boundedPosition, boundedPosition);
+}
+
+void FindNext()
+{
+    if (findText.empty()) {
+        return;
+    }
+    const std::wstring contents = GetControlText(editorWindow);
+    DWORD selectionStart = 0;
+    DWORD selectionEnd = 0;
+    SendMessageW(editorWindow, EM_GETSEL,
+                 reinterpret_cast<WPARAM>(&selectionStart),
+                 reinterpret_cast<LPARAM>(&selectionEnd));
+    const size_t start = std::min<size_t>(selectionEnd, contents.size());
+    const bool matchCase = (findReplace.Flags & FR_MATCHCASE) != 0;
+    size_t match = std::wstring::npos;
+    for (size_t index = start; index + findText.size() <= contents.size(); ++index) {
+        const bool equal = matchCase
+            ? contents.compare(index, findText.size(), findText) == 0
+            : _wcsnicmp(contents.c_str() + index, findText.c_str(), findText.size()) == 0;
+        if (equal) {
+            match = index;
+            break;
+        }
+    }
+    if (match == std::wstring::npos) {
+        for (size_t index = 0; index < start && index + findText.size() <= contents.size(); ++index) {
+            const bool equal = matchCase
+                ? contents.compare(index, findText.size(), findText) == 0
+                : _wcsnicmp(contents.c_str() + index, findText.c_str(), findText.size()) == 0;
+            if (equal) {
+                match = index;
+                break;
+            }
+        }
+    }
+    if (match == std::wstring::npos) {
+        SetStatus(L"Search text not found");
+        return;
+    }
+    SendMessageW(editorWindow, EM_SETSEL, static_cast<WPARAM>(match),
+                 static_cast<LPARAM>(match + findText.size()));
+    SetFocus(editorWindow);
+}
+
+void ShowFindDialog(bool replace)
+{
+    if (findDialog && IsWindow(findDialog)) {
+        SetForegroundWindow(findDialog);
+        return;
+    }
+    findTextBuffer[0] = L'\0';
+    replaceTextBuffer[0] = L'\0';
+    findReplace = {};
+    findReplace.lStructSize = sizeof(findReplace);
+    findReplace.hwndOwner = mainWindow;
+    findReplace.lpstrFindWhat = findTextBuffer;
+    findReplace.wFindWhatLen = static_cast<WORD>(std::size(findTextBuffer));
+    findReplace.lpstrReplaceWith = replaceTextBuffer;
+    findReplace.wReplaceWithLen = static_cast<WORD>(std::size(replaceTextBuffer));
+    findReplace.Flags = FR_DOWN;
+    findDialog = replace ? ReplaceTextW(&findReplace) : FindTextW(&findReplace);
+}
+
+bool JumpToDiagnostic(const std::wstring& line)
+{
+    const size_t marker = line.find(L": error:");
+    const size_t warning = line.find(L": warning:");
+    const size_t note = line.find(L": note:");
+    const size_t messageStart = std::min({marker, warning, note});
+    if (messageStart == std::wstring::npos) {
+        return false;
+    }
+    const size_t columnSeparator = line.rfind(L':', messageStart - 1);
+    if (columnSeparator == std::wstring::npos || columnSeparator == 0) {
+        return false;
+    }
+    const size_t lineSeparator = line.rfind(L':', columnSeparator - 1);
+    if (lineSeparator == std::wstring::npos || lineSeparator + 1 == columnSeparator) {
+        return false;
+    }
+    const std::wstring path = line.substr(0, lineSeparator);
+    const int lineNumber = _wtoi(line.substr(lineSeparator + 1,
+                                             columnSeparator - lineSeparator - 1).c_str());
+    const int columnNumber = _wtoi(line.substr(columnSeparator + 1,
+                                               messageStart - columnSeparator - 1).c_str());
+    if (path.empty() || lineNumber < 1 || columnNumber < 1) {
+        return false;
+    }
+    if (_wcsicmp(path.c_str(), currentPath.c_str()) != 0) {
+        OpenSpecificFile(path);
+        if (_wcsicmp(path.c_str(), currentPath.c_str()) != 0) {
+            return true;
+        }
+    }
+    const LRESULT lineIndex = SendMessageW(editorWindow, EM_LINEINDEX, lineNumber - 1, 0);
+    if (lineIndex == -1) {
+        SetStatus(L"Compiler diagnostic line is outside the current file");
+        return true;
+    }
+    const LRESULT lineLength = SendMessageW(editorWindow, EM_LINELENGTH, lineIndex, 0);
+    const LRESULT position = lineIndex + std::min<LRESULT>(columnNumber - 1, lineLength);
+    SendMessageW(editorWindow, EM_SETSEL, position, position);
+    SendMessageW(editorWindow, EM_SCROLLCARET, 0, 0);
+    SetFocus(editorWindow);
+    SetStatus(L"Jumped to compiler diagnostic");
+    return true;
+}
+
 void UpdateTitle()
 {
     std::wstring title = L"ZERO C";
@@ -128,12 +348,17 @@ void SetStatus(const std::wstring& message)
 bool SaveFile(bool saveAs);
 bool ConfirmDiscard();
 void RefreshSourceFiles();
+void OpenSpecificFile(const std::wstring& path);
+void SaveWorkspace();
+void ShowFindDialog(bool replace);
+void FindNext();
 
 void OpenSpecificFile(const std::wstring& path)
 {
     if (!ConfirmDiscard()) {
         return;
     }
+    SaveBookmarks();
 
     HANDLE file = CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr,
                               OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -181,9 +406,12 @@ void OpenSpecificFile(const std::wstring& path)
     currentPath = path;
     lastExecutable.clear();
     dirty = false;
+    LoadBookmarks();
     UpdateTitle();
+    RestoreCursorPosition();
     RefreshSourceFiles();
     SetStatus(L"Ready  •  " + currentPath);
+    SaveWorkspace();
 }
 
 void EnumerateSourceFiles(const std::wstring& directory, int depth)
@@ -251,6 +479,7 @@ bool ConfirmDiscard()
 
 bool SaveFile(bool saveAs)
 {
+    const std::wstring previousPath = currentPath;
     if (currentPath.empty() || saveAs) {
         wchar_t path[MAX_PATH] = L"";
         if (!currentPath.empty()) {
@@ -300,9 +529,18 @@ bool SaveFile(bool saveAs)
     }
 
     dirty = false;
+    if (bookmarksPath.empty() ||
+        _wcsicmp(previousPath.c_str(), currentPath.c_str()) != 0) {
+        if (!bookmarksPath.empty() &&
+            _wcsicmp(bookmarksPath.c_str(), currentPath.c_str()) != 0) {
+            SaveBookmarks();
+        }
+        LoadBookmarks();
+    }
     UpdateTitle();
     RefreshSourceFiles();
     SetStatus(L"Saved  •  " + currentPath);
+    SaveWorkspace();
     return true;
 }
 
@@ -327,7 +565,10 @@ void NewFile()
     if (!ConfirmDiscard()) {
         return;
     }
+    SaveBookmarks();
     currentPath.clear();
+    bookmarksPath.clear();
+    std::fill(std::begin(bookmarks), std::end(bookmarks), -1);
     lastExecutable.clear();
     dirty = false;
     loadingFile = true;
@@ -336,6 +577,7 @@ void NewFile()
     UpdateTitle();
     RefreshSourceFiles();
     SetStatus(L"New C source file");
+    SaveWorkspace();
     SetFocus(editorWindow);
 }
 
@@ -615,10 +857,16 @@ void DrawMainSurface(HWND window)
 
     RECT icon{9, topbarHeight + 18, 39, topbarHeight + 48};
     fill = CreateSolidBrush(activeColor);
-    FillRect(dc, &icon, fill);
+    HGDIOBJ logoBrush = SelectObject(dc, fill);
+    HPEN logoPen = CreatePen(PS_SOLID, 2, accentColor);
+    HGDIOBJ logoOldPen = SelectObject(dc, logoPen);
+    RoundRect(dc, icon.left, icon.top, icon.right, icon.bottom, 8, 8);
+    SelectObject(dc, logoOldPen);
+    SelectObject(dc, logoBrush);
     DeleteObject(fill);
-    SetTextColor(dc, RGB(238, 222, 223));
-    DrawTextW(dc, L"EX", -1, &icon, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+    DeleteObject(logoPen);
+    SetTextColor(dc, RGB(244, 224, 225));
+    DrawTextW(dc, L"0C", -1, &icon, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     SelectObject(dc, oldFont);
     EndPaint(window, &paint);
@@ -652,11 +900,195 @@ void DrawFileItem(const DRAWITEMSTRUCT* item)
     SelectObject(item->hDC, oldFont);
 }
 
+void MatchBracket()
+{
+    const std::wstring text = GetControlText(editorWindow);
+    DWORD selectionStart = 0;
+    DWORD selectionEnd = 0;
+    SendMessageW(editorWindow, EM_GETSEL,
+                 reinterpret_cast<WPARAM>(&selectionStart),
+                 reinterpret_cast<LPARAM>(&selectionEnd));
+    size_t position = selectionStart;
+    if (position >= text.size() ||
+        (text[position] != L'(' && text[position] != L')' &&
+         text[position] != L'{' && text[position] != L'}' &&
+         text[position] != L'[' && text[position] != L']')) {
+        if (position == 0 ||
+            (text[position - 1] != L'(' && text[position - 1] != L')' &&
+             text[position - 1] != L'{' && text[position - 1] != L'}' &&
+             text[position - 1] != L'[' && text[position - 1] != L']')) {
+            SetStatus(L"Place the caret beside a bracket to find its pair");
+            return;
+        }
+        --position;
+    }
+
+    const wchar_t opening = text[position];
+    const bool forward = opening == L'(' || opening == L'{' || opening == L'[';
+    const wchar_t match = opening == L'(' ? L')' : opening == L'{' ? L'}' :
+                         opening == L'[' ? L']' : opening == L')' ? L'(' :
+                         opening == L'}' ? L'{' : L'[';
+    int depth = 0;
+    if (forward) {
+        for (size_t index = position; index < text.size(); ++index) {
+            if (text[index] == opening) ++depth;
+            if (text[index] == match && --depth == 0) {
+                SendMessageW(editorWindow, EM_SETSEL, index, index + 1);
+                SetStatus(L"Matching bracket found");
+                return;
+            }
+        }
+    } else {
+        for (size_t index = position + 1; index > 0; --index) {
+            const size_t current = index - 1;
+            if (text[current] == opening) ++depth;
+            if (text[current] == match && --depth == 0) {
+                SendMessageW(editorWindow, EM_SETSEL, current, current + 1);
+                SetStatus(L"Matching bracket found");
+                return;
+            }
+        }
+    }
+    SetStatus(L"No matching bracket found");
+}
+
+void SetBookmark(int index)
+{
+    DWORD start = 0;
+    DWORD end = 0;
+    SendMessageW(editorWindow, EM_GETSEL, reinterpret_cast<WPARAM>(&start),
+                 reinterpret_cast<LPARAM>(&end));
+    bookmarks[index] = static_cast<int>(start);
+    SaveWorkspace();
+    SetStatus(L"Bookmark " + std::to_wstring(index) + L" set");
+}
+
+void GoToBookmark(int index)
+{
+    if (bookmarks[index] < 0) {
+        SetStatus(L"Bookmark " + std::to_wstring(index) + L" is not set");
+        return;
+    }
+    const LRESULT length = GetWindowTextLengthW(editorWindow);
+    const LRESULT position = std::min<LRESULT>(bookmarks[index], length);
+    SendMessageW(editorWindow, EM_SETSEL, position, position);
+    SendMessageW(editorWindow, EM_SCROLLCARET, 0, 0);
+    SetFocus(editorWindow);
+}
+
+void InsertIndentedNewline(HWND editor)
+{
+    const std::wstring text = GetControlText(editor);
+    DWORD start = 0;
+    DWORD end = 0;
+    SendMessageW(editor, EM_GETSEL, reinterpret_cast<WPARAM>(&start),
+                 reinterpret_cast<LPARAM>(&end));
+    const size_t caret = std::min<size_t>(start, text.size());
+    const size_t lineStart = text.rfind(L'\n', caret == 0 ? 0 : caret - 1);
+    const size_t indentStart = lineStart == std::wstring::npos ? 0 : lineStart + 1;
+    size_t firstCode = indentStart;
+    while (firstCode < caret && (text[firstCode] == L' ' || text[firstCode] == L'\t')) {
+        ++firstCode;
+    }
+    std::wstring indent = text.substr(indentStart, firstCode - indentStart);
+    size_t lastCode = caret;
+    while (lastCode > firstCode && (text[lastCode - 1] == L' ' || text[lastCode - 1] == L'\t')) {
+        --lastCode;
+    }
+    if (lastCode > firstCode && text[lastCode - 1] == L'{') {
+        indent += L"    ";
+    }
+    const wchar_t newline[] = L"\r\n";
+    SendMessageW(editor, EM_REPLACESEL, TRUE,
+                 reinterpret_cast<LPARAM>((std::wstring(newline) + indent).c_str()));
+}
+
+LRESULT CALLBACK OutputSubclass(HWND window, UINT message, WPARAM wParam,
+                                LPARAM lParam, UINT_PTR, DWORD_PTR)
+{
+    if (message == WM_LBUTTONDBLCLK) {
+        const LRESULT character = LOWORD(SendMessageW(window, EM_CHARFROMPOS, 0, lParam));
+        const LRESULT lineNumber = SendMessageW(window, EM_LINEFROMCHAR, character, 0);
+        const LRESULT lineStart = SendMessageW(window, EM_LINEINDEX, lineNumber, 0);
+        const LRESULT lineLength = SendMessageW(window, EM_LINELENGTH, lineStart, 0);
+        const std::wstring output = GetControlText(window);
+        if (lineStart >= 0 && lineLength > 0 &&
+            static_cast<size_t>(lineStart + lineLength) <= output.size()) {
+            const std::wstring line = output.substr(static_cast<size_t>(lineStart),
+                                                    static_cast<size_t>(lineLength));
+            if (!JumpToDiagnostic(line)) {
+                SetStatus(L"That output line has no clickable GCC diagnostic");
+            }
+        }
+        return 0;
+    }
+    return DefSubclassProc(window, message, wParam, lParam);
+}
+
+void HandleFindReplace()
+{
+    if (findReplace.Flags & FR_DIALOGTERM) {
+        findDialog = nullptr;
+        return;
+    }
+    findText = findTextBuffer;
+    replaceText = replaceTextBuffer;
+    if (findText.empty()) {
+        return;
+    }
+    if (findReplace.Flags & FR_REPLACEALL) {
+        std::wstring contents = GetControlText(editorWindow);
+        size_t count = 0;
+        size_t position = 0;
+        while (position + findText.size() <= contents.size()) {
+            const bool equal = (findReplace.Flags & FR_MATCHCASE)
+                ? contents.compare(position, findText.size(), findText) == 0
+                : _wcsnicmp(contents.c_str() + position, findText.c_str(), findText.size()) == 0;
+            if (equal) {
+                contents.replace(position, findText.size(), replaceText);
+                position += replaceText.size();
+                ++count;
+            } else {
+                ++position;
+            }
+        }
+        SetWindowTextW(editorWindow, contents.c_str());
+        SetStatus(L"Replaced " + std::to_wstring(count) + L" occurrence(s)");
+        return;
+    }
+    if (findReplace.Flags & FR_REPLACE) {
+        DWORD start = 0;
+        DWORD end = 0;
+        SendMessageW(editorWindow, EM_GETSEL, reinterpret_cast<WPARAM>(&start),
+                     reinterpret_cast<LPARAM>(&end));
+        const std::wstring contents = GetControlText(editorWindow);
+        if (end > start && end - start == findText.size() &&
+            static_cast<size_t>(end) <= contents.size()) {
+            const bool equal = (findReplace.Flags & FR_MATCHCASE)
+                ? contents.compare(start, findText.size(), findText) == 0
+                : _wcsnicmp(contents.c_str() + start, findText.c_str(), findText.size()) == 0;
+            if (equal) {
+                SendMessageW(editorWindow, EM_REPLACESEL, TRUE,
+                             reinterpret_cast<LPARAM>(replaceText.c_str()));
+            }
+        }
+    }
+    FindNext();
+}
+
 LRESULT CALLBACK EditorSubclass(HWND window, UINT message, WPARAM wParam,
                                 LPARAM lParam, UINT_PTR, DWORD_PTR)
 {
     if (message == WM_KEYDOWN && wParam == VK_TAB) {
         SendMessageW(window, EM_REPLACESEL, TRUE, reinterpret_cast<LPARAM>(L"    "));
+        return 0;
+    }
+    if (message == WM_KEYDOWN && wParam == VK_RETURN) {
+        InsertIndentedNewline(window);
+        return 0;
+    }
+    if (message == WM_CHAR && wParam == L'\r') {
+        InsertIndentedNewline(window);
         return 0;
     }
     if (message == WM_KEYDOWN && (GetKeyState(VK_CONTROL) & 0x8000)) {
@@ -668,12 +1100,47 @@ LRESULT CALLBACK EditorSubclass(HWND window, UINT message, WPARAM wParam,
             OpenFile();
             return 0;
         }
+        if (wParam == 'F') {
+            ShowFindDialog(false);
+            return 0;
+        }
+        if (wParam == 'H') {
+            ShowFindDialog(true);
+            return 0;
+        }
+        if (wParam == 'M') {
+            MatchBracket();
+            return 0;
+        }
+        if (wParam == 'K' || wParam == 'Q') {
+            bookmarkPrefixPending = wParam == 'K' ? 1 : 2;
+            return 0;
+        }
+    }
+    if (message == WM_KEYDOWN && bookmarkPrefixPending &&
+        wParam >= '0' && wParam <= '9') {
+        const int index = static_cast<int>(wParam - '0');
+        if (bookmarkPrefixPending == 1) {
+            SetBookmark(index);
+        } else {
+            GoToBookmark(index);
+        }
+        bookmarkPrefixPending = 0;
+        return 0;
+    }
+    if (message == WM_KEYDOWN && bookmarkPrefixPending &&
+        !(GetKeyState(VK_CONTROL) & 0x8000)) {
+        bookmarkPrefixPending = 0;
     }
     return DefSubclassProc(window, message, wParam, lParam);
 }
 
 LRESULT CALLBACK WindowProcedure(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (findReplaceMessage && message == findReplaceMessage) {
+        HandleFindReplace();
+        return 0;
+    }
     switch (message) {
     case WM_CREATE: {
         mainWindow = window;
@@ -726,12 +1193,15 @@ LRESULT CALLBACK WindowProcedure(HWND window, UINT message, WPARAM wParam, LPARA
         SendMessageW(tabTitle, WM_SETFONT, reinterpret_cast<WPARAM>(uiFont), TRUE);
         SendMessageW(outputTitle, WM_SETFONT, reinterpret_cast<WPARAM>(smallFont), TRUE);
         SetWindowSubclass(editorWindow, EditorSubclass, 1, 0);
+        SetWindowSubclass(outputWindow, OutputSubclass, 2, 0);
         RefreshSourceFiles();
         LayoutControls(window);
         return 0;
     }
     case WM_SIZE:
         LayoutControls(window);
+        RedrawWindow(window, nullptr, nullptr,
+                     RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW);
         return 0;
     case WM_GETMINMAXINFO: {
         auto* limits = reinterpret_cast<MINMAXINFO*>(lParam);
@@ -780,6 +1250,11 @@ LRESULT CALLBACK WindowProcedure(HWND window, UINT message, WPARAM wParam, LPARA
     case WM_CTLCOLORSTATIC: {
         HDC dc = reinterpret_cast<HDC>(wParam);
         HWND control = reinterpret_cast<HWND>(lParam);
+        if (control == outputWindow) {
+            SetTextColor(dc, RGB(205, 190, 192));
+            SetBkColor(dc, panelColor);
+            return reinterpret_cast<INT_PTR>(panelBrush);
+        }
         if (control == explorerTitle || control == outputTitle) {
             SetTextColor(dc, RGB(165, 151, 153));
             SetBkColor(dc, sidebarColor);
@@ -829,6 +1304,7 @@ LRESULT CALLBACK WindowProcedure(HWND window, UINT message, WPARAM wParam, LPARA
     }
     case WM_CLOSE:
         if (ConfirmDiscard()) {
+            SaveWorkspace();
             DestroyWindow(window);
         }
         return 0;
@@ -856,6 +1332,33 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int showCommand)
     wchar_t executablePath[MAX_PATH]{};
     GetModuleFileNameW(nullptr, executablePath, MAX_PATH);
     appDirectory = ParentPath(executablePath);
+    InitializeWorkspace();
+    findReplaceMessage = RegisterWindowMessageW(FINDMSGSTRINGW);
+
+    wchar_t restorePath[MAX_PATH]{};
+    int windowX = CW_USEDEFAULT;
+    int windowY = CW_USEDEFAULT;
+    int windowWidth = 1100;
+    int windowHeight = 800;
+    if (!workspaceSettingsPath.empty()) {
+        GetPrivateProfileStringW(L"Workspace", L"File", L"", restorePath,
+                                 static_cast<DWORD>(std::size(restorePath)),
+                                 workspaceSettingsPath.c_str());
+        windowX = GetPrivateProfileIntW(L"Window", L"X", CW_USEDEFAULT,
+                                        workspaceSettingsPath.c_str());
+        windowY = GetPrivateProfileIntW(L"Window", L"Y", CW_USEDEFAULT,
+                                        workspaceSettingsPath.c_str());
+        windowWidth = GetPrivateProfileIntW(L"Window", L"Width", 1100,
+                                            workspaceSettingsPath.c_str());
+        windowHeight = GetPrivateProfileIntW(L"Window", L"Height", 800,
+                                             workspaceSettingsPath.c_str());
+        if (windowWidth < 780 || windowHeight < 560) {
+            windowX = CW_USEDEFAULT;
+            windowY = CW_USEDEFAULT;
+            windowWidth = 1100;
+            windowHeight = 800;
+        }
+    }
 
     INITCOMMONCONTROLSEX controls{sizeof(controls), ICC_STANDARD_CLASSES};
     InitCommonControlsEx(&controls);
@@ -880,7 +1383,10 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int showCommand)
     windowClass.lpszClassName = L"ZeroCNativeWindow";
     windowClass.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
     windowClass.hbrBackground = backgroundBrush;
-    windowClass.hIcon = LoadIconW(nullptr, MAKEINTRESOURCEW(32512));
+    windowClass.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_ZERO_C));
+    if (!windowClass.hIcon) {
+        windowClass.hIcon = LoadIconW(nullptr, MAKEINTRESOURCEW(32512));
+    }
     if (!RegisterClassW(&windowClass)) {
         MessageBoxW(nullptr, L"Could not register the editor window.",
                     L"ZERO C", MB_OK | MB_ICONERROR);
@@ -889,15 +1395,26 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int showCommand)
 
     mainWindow = CreateWindowExW(0, windowClass.lpszClassName,
                                  L"ZERO C — Untitled.c",
-                                 WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT,
-                                 1100, 800, nullptr, nullptr, instance, nullptr);
+                                 WS_OVERLAPPEDWINDOW, windowX, windowY,
+                                 windowWidth, windowHeight, nullptr, nullptr, instance, nullptr);
     if (!mainWindow) {
         MessageBoxW(nullptr, L"Could not create the editor window.",
                     L"ZERO C", MB_OK | MB_ICONERROR);
         return 1;
     }
+    if (windowClass.hIcon) {
+        SendMessageW(mainWindow, WM_SETICON, ICON_SMALL,
+                     reinterpret_cast<LPARAM>(windowClass.hIcon));
+    }
     ShowWindow(mainWindow, showCommand);
     UpdateWindow(mainWindow);
+    RedrawWindow(mainWindow, nullptr, nullptr,
+                 RDW_INVALIDATE | RDW_ERASE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+    if (restorePath[0] && GetFileAttributesW(restorePath) != INVALID_FILE_ATTRIBUTES) {
+        OpenSpecificFile(restorePath);
+    } else if (restorePath[0]) {
+        SetStatus(L"Last workspace file could not be found");
+    }
 
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0) {

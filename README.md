@@ -12,8 +12,8 @@ per-user and does not need administrator privileges. It installs ZERO C and
 its GCC toolchain, creates a Start Menu shortcut, and optionally creates a
 desktop shortcut. Uninstall through **Settings → Apps → Installed apps**.
 
-> First release installers are not code-signed. Windows SmartScreen may show
-> an unknown-publisher prompt. Only run installers obtained from this
+> Release installers are not code-signed. Windows SmartScreen may show an
+> unknown-publisher prompt. Only run installers obtained from this
 > repository's Releases.
 
 ## Quick start
@@ -33,20 +33,27 @@ the installed `C\TC` folder. ZERO C edits one source file at a time.
 - Native Windows editor with a dark-red theme, file explorer, active-file tab,
   output panel, and resizable window.
 - Open, edit, and save UTF-8 C/C++ source files.
-- GCC build with compiler diagnostics shown in the editor.
+- GCC build with compiler diagnostics shown in the output panel.
+- Double-click a GCC diagnostic to open its source and jump to the reported line.
 - Run the last successful build in a separate console for keyboard input.
-- `Ctrl+O` to open, `Ctrl+S` to save, and `Tab` to indent.
+- Auto-indent, bracket matching, search/replace, and per-file numbered bookmarks.
+- Restores the last open file, caret location, and window size/position.
+- ZERO C app icon and custom in-app logo.
+- Reliable native control redraw in the dark theme.
 - Portable MinGW-w64 GCC in the installer; no system-wide PATH changes.
 - Compatibility functions for common Turbo C `getch()` and `clrscr()` calls.
 
 ZERO C uses modern GCC; it is **not** Borland Turbo C. Turbo C graphics
-libraries and other compiler-specific features may need to be updated.
+libraries, DOS hardware access, and the original source-level debugger are
+not included. Other compiler-specific features may need to be updated.
 
 ## Source and build
 
-The repository intentionally contains only ZERO C's app source, build
-configuration, and packaged installer. Personal practice programs are not
-included.
+The repository contains ZERO C's application source, compatibility header,
+build/installer configuration, and documentation. It does not contain the
+developer's personal C practice programs, prebuilt executables, or local
+compiler downloads. The installer packages the app, its single compatibility
+header, required documentation, and the separately licensed GCC toolchain.
 
 The source editor can be built with a compatible 64-bit MinGW-w64 GCC and
 Inno Setup 7. See [docs/USER-GUIDE.md](./docs/USER-GUIDE.md) for setup and
