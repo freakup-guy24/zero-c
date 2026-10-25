@@ -33,9 +33,11 @@ runtime are not included; compiler-specific code may need porting.
 Programs that need keyboard input should be run in the console opened by Run.
 
 INSTALL
-Run ZERO-C-Setup-1.0.1.exe. It installs for the current Windows user, creates
-a Start Menu shortcut, and optionally creates a desktop shortcut. Uninstall
-from Windows Settings > Apps. Your C source files are not removed by uninstall.
+Run ZERO-C-Setup-1.0.2.exe. It installs for the current Windows user, creates
+a Start Menu shortcut, and optionally creates a desktop shortcut. If updating
+from v1.0.1, run the new installer over the existing copy; no uninstall is
+needed. The update fixes GCC linking when the install path contains spaces.
+Your C source files are not included in the release package.
 
 BUILD THE APP AND INSTALLER
 Build-ZERO-C.ps1 takes the path to a WinLibs GCC/MinGW-w64 toolchain and the
