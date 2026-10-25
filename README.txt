@@ -33,11 +33,20 @@ runtime are not included; compiler-specific code may need porting.
 Programs that need keyboard input should be run in the console opened by Run.
 
 INSTALL
-Run ZERO-C-Setup-1.0.2.exe. It installs for the current Windows user, creates
+Run ZERO-C-Setup-1.0.3.exe. It installs for the current Windows user, creates
 a Start Menu shortcut, and optionally creates a desktop shortcut. If updating
 from v1.0.1, run the new installer over the existing copy; no uninstall is
 needed. The update fixes GCC linking when the install path contains spaces.
 Your C source files are not included in the release package.
+
+PORTABLE VERSION
+Download ZERO-C-Portable-1.0.3.zip from the official GitHub Releases page
+and extract the entire archive to a writable folder or USB drive. Run
+ZERO-C.exe from the extracted folder. Keep all bundled folders and files
+together. Portable settings are stored in the local Settings folder. Place your
+own source files in C\TC or open them from elsewhere. The portable package
+contains no personal practice programs. No installer or administrator access
+is needed.
 
 BUILD THE APP AND INSTALLER
 Build-ZERO-C.ps1 takes the path to a WinLibs GCC/MinGW-w64 toolchain and the
