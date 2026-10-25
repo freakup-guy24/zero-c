@@ -2,11 +2,18 @@
 
 ## Install
 
-Run `ZERO-C-Setup-1.0.2.exe`, choose the default install folder, and finish
-setup. Administrator access is not required. You can select the optional
-desktop shortcut during setup. If updating from v1.0.1, run the new installer
-over the existing copy; do not uninstall first. Your C source files are not
-part of the installer package.
+Run `ZERO-C-Setup-1.0.3.exe` for a per-user installation, or download
+`ZERO-C-Portable-1.0.3.zip` from the official release. For the portable
+version, extract the complete ZIP to a writable folder or USB drive and launch
+`ZERO-C.exe` inside it. Keep the GCC and C folders, `portable.mode`, and
+`zero-c.spec` beside the application. No installation or admin access is
+needed. Portable settings are saved in the local `Settings` folder, so move the
+whole extracted folder to carry settings. Your personal C files are not part of
+the download; put your programs in `C\TC` inside the portable folder or open
+them from elsewhere.
+
+For a standard installation, administrator access is not required and you may
+select the optional desktop shortcut during setup.
 
 ## Open and edit source
 
@@ -73,7 +80,8 @@ models, DOS interrupts, or BGI graphics runtime.
 ## Display and rendering
 
 Version 1.0.1 fixed dark-theme repaint issues in the editor and Build Output.
-Version 1.0.2 fixes GCC linker failures when the install path contains spaces.
+Version 1.0.2 fixed GCC linker failures when the install path contains spaces.
+Version 1.0.3 adds a portable ZIP edition with settings stored beside the app.
 The launcher passes the bundled manifest object by library name, avoiding a
 space-sensitive absolute object path.
 
