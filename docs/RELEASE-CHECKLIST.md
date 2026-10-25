@@ -4,6 +4,8 @@
 - [ ] Use a clean, supported x64 WinLibs/MinGW-w64 GCC toolchain.
 - [ ] Install Inno Setup 7 and verify its official installer signature.
 - [ ] Build the app and installer using `Build-ZERO-C.ps1`.
+- [ ] Smoke-test compiling and linking from the default install path containing
+      spaces; verify the bundled default manifest resolves.
 - [ ] Smoke-test setup, launch, opening/saving a disposable file, building,
       diagnostics, Run, shortcuts, and uninstall on a clean Windows account.
 - [ ] Confirm the final installer contains no personal source files.
