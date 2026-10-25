@@ -52,6 +52,8 @@ jobs:
           path: |
             dist/ZERO-C-Setup-*.exe
             dist/ZERO-C-Setup-*.exe.sha256
+            dist/ZERO-C-Portable-*.zip
+            dist/ZERO-C-Portable-*.zip.sha256
           if-no-files-found: error
 
       - name: Publish tagged GitHub release
@@ -63,3 +65,5 @@ jobs:
           files: |
             dist/ZERO-C-Setup-*.exe
             dist/ZERO-C-Setup-*.exe.sha256
+            dist/ZERO-C-Portable-*.zip
+            dist/ZERO-C-Portable-*.zip.sha256
