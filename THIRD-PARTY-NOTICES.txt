@@ -1,0 +1,16 @@
+ZERO C bundles the portable WinLibs GCC/MinGW-w64 toolchain in the Windows
+installer. The toolchain is separate from ZERO C and includes third-party
+components under their respective open-source licenses. The included WinLibs
+version_info.txt identifies compiler, runtime, and tool versions. License
+texts included with each component remain in the redistributed toolchain
+where supplied.
+
+WinLibs distribution and source package: https://winlibs.com/
+WinLibs source repository and release archives: https://github.com/brechtsanders/winlibs_mingw
+GCC source and license information: https://gcc.gnu.org/
+MinGW-w64 source and license information: https://www.mingw-w64.org/
+GNU Binutils source and license information: https://www.gnu.org/software/binutils/
+GNU GDB source and license information: https://www.gnu.org/software/gdb/
+
+ZERO C is a separate application and is not affiliated with or endorsed by
+the GCC, MinGW-w64, or WinLibs projects.

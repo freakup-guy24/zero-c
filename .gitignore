@@ -1,0 +1,22 @@
+# Build output and downloaded toolchains
+/build/
+/dist/
+/releases/*.exe
+/releases/*.sha256
+/GCC/
+/DOSBox-X/
+
+# Personal C programs and their generated files
+/C/TC/*
+!/C/TC/compat/
+/C/TC/compat/*
+!/C/TC/compat/conio.h
+
+# Local IDE and editor state
+.vs/
+.vscode/
+*.user
+*.suo
+*.obj
+*.o
+*.GCC.exe
