@@ -16,6 +16,7 @@ $windres = Join-Path $bin "windres.exe"
 foreach ($required in @(
     (Join-Path $root "ZERO-C.cpp"),
     (Join-Path $root "ZERO-C.rc"),
+    (Join-Path $root "zero-c.spec"),
     (Join-Path $root "zero-c.ico"),
     (Join-Path $root "ZERO-C-Setup.iss"),
     (Join-Path $root "C\TC\compat\conio.h"),
@@ -55,6 +56,7 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Copy-Item -LiteralPath (Join-Path $root "README.txt") -Destination (Join-Path $build "README.txt") -Force
+Copy-Item -LiteralPath (Join-Path $root "zero-c.spec") -Destination (Join-Path $build "zero-c.spec") -Force
 Copy-Item -LiteralPath (Join-Path $root "THIRD-PARTY-NOTICES.txt") -Destination (Join-Path $build "THIRD-PARTY-NOTICES.txt") -Force
 New-Item -ItemType Directory -Path (Join-Path $build "compat") -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $root "C\TC\compat\conio.h") -Destination (Join-Path $build "compat\conio.h") -Force
@@ -66,11 +68,11 @@ if ($LASTEXITCODE -ne 0) {
     throw "Inno Setup failed with exit code $LASTEXITCODE."
 }
 
-$installer = Join-Path $dist "ZERO-C-Setup-1.0.1.exe"
+$installer = Join-Path $dist "ZERO-C-Setup-1.0.2.exe"
 if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
     throw "Installer output was not created: $installer"
 }
 $checksum = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.1.exe" -Encoding ASCII
+Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.2.exe" -Encoding ASCII
 Write-Output "Build complete: $installer"
 Write-Output "SHA-256: $checksum"
