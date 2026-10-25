@@ -118,6 +118,19 @@ void OpenSpecificFile(const std::wstring& path);
 
 void InitializeWorkspace()
 {
+    const std::wstring portableMarker = appDirectory + L"\\portable.mode";
+    if (GetFileAttributesW(portableMarker.c_str()) != INVALID_FILE_ATTRIBUTES) {
+        const std::wstring directory = appDirectory + L"\\Settings";
+        if (!CreateDirectoryW(directory.c_str(), nullptr) &&
+            GetLastError() != ERROR_ALREADY_EXISTS) {
+            MessageBoxW(nullptr, L"Could not create the portable Settings folder. Extract ZERO C to a writable folder and try again.",
+                         L"ZERO C", MB_OK | MB_ICONERROR);
+            return;
+        }
+        workspaceSettingsPath = directory + L"\\workspace.ini";
+        return;
+    }
+
     wchar_t appData[MAX_PATH]{};
     const DWORD length = GetEnvironmentVariableW(L"APPDATA", appData, MAX_PATH);
     if (length == 0 || length >= MAX_PATH) {
