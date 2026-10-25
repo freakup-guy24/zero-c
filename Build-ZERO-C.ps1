@@ -73,7 +73,7 @@ if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
     throw "Installer output was not created: $installer"
 }
 $checksum = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
-Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.2.exe" -Encoding ASCII
+Set-Content -LiteralPath "$installer.sha256" -Value "$checksum  ZERO-C-Setup-1.0.3.exe" -Encoding ASCII
 Write-Output "Build complete: $installer"
 Write-Output "SHA-256: $checksum"
 
