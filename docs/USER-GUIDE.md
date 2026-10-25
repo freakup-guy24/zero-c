@@ -2,9 +2,11 @@
 
 ## Install
 
-Run `ZERO-C-Setup-1.0.1.exe`, choose the install folder, and finish setup.
-Administrator access is not required. You can select the optional desktop
-shortcut during setup. Remove ZERO C from Windows **Settings → Apps**.
+Run `ZERO-C-Setup-1.0.2.exe`, choose the default install folder, and finish
+setup. Administrator access is not required. You can select the optional
+desktop shortcut during setup. If updating from v1.0.1, run the new installer
+over the existing copy; do not uninstall first. Your C source files are not
+part of the installer package.
 
 ## Open and edit source
 
@@ -70,8 +72,10 @@ models, DOS interrupts, or BGI graphics runtime.
 
 ## Display and rendering
 
-Version 1.0.1 fixes dark-theme repaint issues in the editor and Build Output.
-The launch fade was removed so native controls redraw reliably.
+Version 1.0.1 fixed dark-theme repaint issues in the editor and Build Output.
+Version 1.0.2 fixes GCC linker failures when the install path contains spaces.
+The launcher passes the bundled manifest object by library name, avoiding a
+space-sensitive absolute object path.
 
 ## Troubleshooting
 
@@ -79,6 +83,11 @@ The launch fade was removed so native controls redraw reliably.
 
 Repair/reinstall ZERO C and check that `GCC\mingw64\bin\gcc.exe` exists in
 the selected install directory.
+
+### Build fails with `cannot find ... default-manifest.o`
+
+This linker issue is fixed in v1.0.2. Run the v1.0.2 installer over the
+existing installation; you do not need to uninstall or move your source files.
 
 ### My program needs input
 
